@@ -55,16 +55,10 @@ behaviour_info(callbacks) ->
      ,{session, 2}
 
       %%
-      %% connect gossip session to selected remote peer using pipe protocol
+      %% connect session to selected remote peer using pipe protocol
       %% 
       %% -spec(handshake/3 :: (peer(), any(), state()) -> state()).
      ,{handshake, 3}
-
-      %%
-      %% return chunk(s) to apply anti-entropy
-      %% 
-      %% -spec(chunks/3 :: (state()) -> {list(), state()}).
-     ,{chunks,    1}  
 
       %%
       %% make snapshot, returns key/val stream 
@@ -72,7 +66,6 @@ behaviour_info(callbacks) ->
       %% -spec(snapshot/1 :: (state()) -> {datum:stream(), state()}).
       %% -spec(snapshot/2 :: (list(), any()) -> {datum:stream(), state()}).
      ,{snapshot,  1}
-     ,{snapshot,  2}
 
       %%
       %% remote peer diff, called for each key, order is arbitrary 
@@ -90,7 +83,6 @@ behaviour_info(_) ->
 %%    {timeout,  timeout()} - peer i/o timeout
 %%    {capacity, integer()} - max number of simultaneous sessions
 %%    {adapter, {atom(), any()}} - aae behavior
-%%    {strategy, all | chunk} - reconciliation strategy
 start_link(Opts) ->
    aae_leader:start_link(Opts).
 

@@ -62,9 +62,6 @@ init({timeout, X}, State) ->
    State#{t => X};
 init({adapter, X}, State) ->
    State#{adapter => X};
-init({strategy,X}, State) ->
-   State#{strategy => X};
-
 init(_, State) ->
    State.
 
@@ -92,7 +89,7 @@ idle({session, Node, Peer}, _Pipe, State) ->
    };
 
 %%
-idle({session, Peer}, Pipe, #{strategy := all}=State) ->
+idle({session, Peer}, Pipe, State) ->
    erlang:monitor(process, pipe:a(Pipe)),
    pipe:a(Pipe, {session, ack}),
    ?INFO("aae : -handshake ~p (~s)", [Peer, erlang:node(pipe:a(Pipe))]),
@@ -101,18 +98,7 @@ idle({session, Peer}, Pipe, #{strategy := all}=State) ->
          is   => follower 
         ,peer => Peer
       }
-   );
-
-idle({session, Peer}, Pipe, #{strategy := chunk}=State) ->
-   erlang:monitor(process, pipe:a(Pipe)),
-   pipe:a(Pipe, {session, ack}),
-   ?INFO("aae : -handshake ~p (~s)", [Peer, erlang:node(pipe:a(Pipe))]),
-   {next_state, snapshot,
-      State#{
-         is   => follower
-        ,peer => Peer
-      }
-   }.
+   ).
 
 %%%
 %%% HANDSHAKE
@@ -142,7 +128,7 @@ handshake({session, ack}, Pipe, #{peer := Peer, t := T}=State) ->
 %%%
 
 %%
-snapshot(prepare, Pipe, #{strategy := all, adapter := {Mod, Adapter0}} = State) ->
+snapshot(prepare, Pipe, #{adapter := {Mod, Adapter0}} = State) ->
    %% @todo: log snapshot time
    pipe:emit(Pipe, self(), build),
    {Stream, Adapter1} = Mod:snapshot(Adapter0),
@@ -153,31 +139,7 @@ snapshot(prepare, Pipe, #{strategy := all, adapter := {Mod, Adapter0}} = State) 
         ,adapter => {Mod, Adapter1}
       }
    };
-
-snapshot(prepare, Pipe, #{strategy := chunk, adapter := {Mod, Adapter0}} = State) ->
-   {Chunks, Adapter1} = Mod:chunks(Adapter0),
-   {Stream, Adapter2} = Mod:snapshot(Chunks, Adapter1),
-   pipe:a(Pipe, {prepare, Chunks}),
-   pipe:emit(Pipe, self(), build),
-   {next_state, snapshot, 
-      State#{
-         stream  => Stream
-        ,ht      => htree:new()
-        ,adapter => {Mod, Adapter2}
-      }
-   };
-   
-snapshot({prepare, Chunks}, Pipe, #{strategy := chunk, adapter := {Mod, Adapter0}} = State) ->
-   {Stream, Adapter1} = Mod:snapshot(Chunks, Adapter0),
-   pipe:emit(Pipe, self(), build),
-   {next_state, snapshot, 
-      State#{
-         stream => Stream
-        ,ht     => htree:new()
-        ,adapter => {Mod, Adapter1}
-      }
-   };
-   
+      
 snapshot(build, Pipe, #{ht := HT0, stream := Stream0}=State) ->
    case htbuild(HT0, Stream0) of
       %% hash tree is build

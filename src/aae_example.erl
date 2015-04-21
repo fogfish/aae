@@ -26,9 +26,7 @@
   ,peers/1
   ,session/2
   ,handshake/3
-  ,chunks/1
   ,snapshot/1
-  ,snapshot/2
   ,diff/4
 ]).
 -export([run/0, run/1]).
@@ -76,29 +74,13 @@ handshake(Peer, Req, State) ->
    State.
 
 %%
-%% return chunk(s) to apply anti-entropy
--spec(chunks/1 :: (any()) -> any()).
-
-chunks(State) ->
-   {random:uniform(10), State}.
-
-%%
 %% make snapshot, returns key/val stream 
 -spec(snapshot/1 :: (any()) -> datum:stream()).
--spec(snapshot/2 :: (list(), any()) -> datum:stream()).
 
 snapshot(State) ->
    Stream = stream:build(
       lists:usort(
          [{random:uniform(X), random:uniform(3)} || X <- lists:seq(1, 100)]
-      )
-   ),
-   {Stream, State}.
-
-snapshot(Chunk, State) ->
-   Stream = stream:build(
-      lists:usort(
-         [{random:uniform(Chunk * 100), random:uniform(3)} || _ <- lists:seq(1, Chunk)]
       )
    ),
    {Stream, State}.
@@ -121,7 +103,6 @@ diff(_Peer, _Key, _Val, _State) ->
    {session, {10000, 0.5}}
   ,{timeout,        10000}
   ,{capacity,          10}
-  ,{strategy,       chunk}
   ,{adapter, {?MODULE, []}}
 ]).
 
