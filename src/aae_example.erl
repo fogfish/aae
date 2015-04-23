@@ -27,7 +27,7 @@
   ,session/2
   ,handshake/3
   ,snapshot/1
-  ,diff/4
+  ,diff/3
 ]).
 -export([run/0, run/1]).
 
@@ -35,7 +35,6 @@
 %% data types
 -type(state() :: map()).
 -type(peer()  :: pid()).
--type(key()   :: any()).
 -type(val()   :: any()).
 
 %%
@@ -79,18 +78,21 @@ handshake(Peer, Req, State) ->
 
 snapshot(State) ->
    Stream = stream:build(
-      lists:usort(
-         [{random:uniform(X), random:uniform(3)} || X <- lists:seq(1, 100)]
+      lists:map(
+         fun(X) -> {X, X} end,
+         lists:usort(
+            [random:uniform(X) || X <- lists:seq(1, 100)]
+         )
       )
    ),
    {Stream, State}.
 
 %%
 %% remote peer diff, called for each key, order is arbitrary 
--spec(diff/4 :: (peer(), key(), val(), state()) -> ok).
+-spec(diff/3 :: (peer(), val(), state()) -> ok).
 
-diff(_Peer, _Key, _Val, _State) ->
-   ?DEBUG("==> ~p ~p (~p)~n", [self(), _Key, _Val]).
+diff(_Peer, _Val, _State) ->
+   ?DEBUG("==> ~p ~p~n", [self(), _Val]).
 
 
 %%%----------------------------------------------------------------------------   

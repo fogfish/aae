@@ -153,6 +153,7 @@ snapshot(build, Pipe, #{ht := HT0, stream := Stream0}=State) ->
 
       %% hash tree is not build 
       {HT1, Stream1} ->
+         %% @todo: throttle build procedure
          pipe:emit(Pipe, self(), build),
          {next_state, snapshot,
             State#{
@@ -199,8 +200,8 @@ exchange({hash, -1, _}=HashA, Pipe, #{peer := Peer, ht := HT0, adapter := {Mod, 
    Diff  = htree:diff(HashA, HashB),
    ?DEBUG("gossip [ae]: diff ~p (~s) ~p", [pipe:a(Pipe), erlang:node(pipe:a(Pipe)), dump(Diff)]),
    htree:foreach(
-      fun(Key, Val) ->
-         Mod:diff(Peer, Key, Val, Adapter0)
+      fun(_Hash, Val) ->
+         Mod:diff(Peer, Val, Adapter0)
       end,
       htree:evict(Diff, HT0)
    ),

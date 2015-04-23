@@ -64,14 +64,13 @@ behaviour_info(callbacks) ->
       %% make snapshot, returns key/val stream 
       %%
       %% -spec(snapshot/1 :: (state()) -> {datum:stream(), state()}).
-      %% -spec(snapshot/2 :: (list(), any()) -> {datum:stream(), state()}).
      ,{snapshot,  1}
 
       %%
       %% remote peer diff, called for each key, order is arbitrary 
       %%
-      %% -spec(diff/4 :: (peer(), key(), val(), state()) -> ok).
-     ,{diff, 4}
+      %% -spec(diff/4 :: (peer(), val(), state()) -> ok).
+     ,{diff, 3}
    ];
 behaviour_info(_) ->
    undefined.
