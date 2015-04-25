@@ -29,7 +29,7 @@
   ,snapshot/1
   ,diff/3
 ]).
--export([run/0, run/1]).
+-export([run/0, run/1, run/2]).
 
 %%
 %% data types
@@ -101,23 +101,27 @@ diff(_Peer, _Val, _State) ->
 %%%
 %%%----------------------------------------------------------------------------   
 
--define(SPEC, [
+-define(SPEC(X), [
    {session, {10000, 0.5}}
   ,{timeout,        10000}
+  ,{strategy,           X}
   ,{capacity,          10}
   ,{adapter, {?MODULE, []}}
 ]).
 
 run() ->
-   run(2).
+   run(aae, 2).
 
-run(N) ->
+run(Strategy) ->
+   run(Strategy, 2).
+
+run(Strategy, N) ->
    aae:start(),
    lager:set_loglevel(lager_console_backend, debug),
    pg2:create(?MODULE),
    lists:foreach(
       fun(_) ->
-         {ok, Pid} = aae:start_link(?SPEC),
+         {ok, Pid} = aae:start_link(?SPEC(Strategy)),
          pg2:join(?MODULE, Pid)
       end,
       lists:seq(1, N)

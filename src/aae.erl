@@ -18,12 +18,14 @@
 %%   active anti-entropy
 -module(aae).
 
+%% @todo: classic gossip
+
 -export([start/0]).
 -export([behaviour_info/1]).
 -export([
    start_link/1
   ,start_link/2
-  ,i/0
+  ,i/1
 ]).
 
 %%
@@ -81,6 +83,7 @@ behaviour_info(_) ->
 %%    {session,  timeout()} - timeout to establish session  
 %%    {timeout,  timeout()} - peer i/o timeout
 %%    {capacity, integer()} - max number of simultaneous sessions
+%%    {strategy, aae | gossip} - reconciliation strategy
 %%    {adapter, {atom(), any()}} - aae behavior
 start_link(Opts) ->
    aae_leader:start_link(Opts).
@@ -90,5 +93,9 @@ start_link(Name, Opts) ->
 
 %%
 %% list all active session
-i() ->
-   [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_session_sup)].
+i(aae) ->
+   [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_session_sup)];
+
+i(gossip) ->
+   [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_gossip_sup)].
+
