@@ -69,7 +69,7 @@ behaviour_info(callbacks) ->
       %%
       %% remote peer diff, called for each key, order is arbitrary 
       %%
-      %% -spec(diff/4 :: (peer(), val(), state()) -> ok).
+      %% -spec(diff/4 :: (peer(), key(), state()) -> ok).
      ,{diff, 3}
    ];
 behaviour_info(_) ->

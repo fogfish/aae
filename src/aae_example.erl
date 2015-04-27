@@ -78,11 +78,8 @@ handshake(Peer, Req, State) ->
 
 snapshot(State) ->
    Stream = stream:build(
-      lists:map(
-         fun(X) -> {X, X} end,
-         lists:usort(
-            [random:uniform(X) || X <- lists:seq(1, 100)]
-         )
+      lists:usort(
+         [random:uniform(X) || X <- lists:seq(1, 100)]
       )
    ),
    {Stream, State}.
@@ -91,8 +88,8 @@ snapshot(State) ->
 %% remote peer diff, called for each key, order is arbitrary 
 -spec(diff/3 :: (peer(), val(), state()) -> ok).
 
-diff(_Peer, _Val, _State) ->
-   ?DEBUG("==> ~p ~p~n", [self(), _Val]).
+diff(_Peer, _Key, _State) ->
+   ?DEBUG("==> ~p ~p~n", [self(), _Key]).
 
 
 %%%----------------------------------------------------------------------------   

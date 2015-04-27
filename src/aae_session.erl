@@ -254,7 +254,7 @@ dump({hash, L, Hash}) ->
    {hash, L, gb_sets:size(Hash)}.
 
 %%
-%% 
+%% build hash tree 
 htbuild(Ht, Stream) ->
    htbuild(?CONFIG_IO_CHUNK, Ht, Stream).
 
@@ -265,10 +265,6 @@ htbuild(0, HT, Stream) ->
    {HT, Stream};
 
 htbuild(N, HT, Stream) ->
-   {Key, Val} = stream:head(Stream),
-   htbuild(N - 1, htree:insert(Key, Val, HT), stream:tail(Stream)).
-
-
-
-
+   Key = stream:head(Stream),
+   htbuild(N - 1, htree:insert(Key, Key, HT), stream:tail(Stream)).
 

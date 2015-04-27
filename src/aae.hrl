@@ -1,6 +1,6 @@
 
 %%
-%% number of items read w/o interruption
+%% number of items to read w/o interruption
 %% it defines amount of waisted i/o if peer dies
 -define(CONFIG_IO_CHUNK,   10000).
 
