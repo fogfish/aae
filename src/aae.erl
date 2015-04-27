@@ -23,6 +23,7 @@
 -export([
    start_link/1
   ,start_link/2
+  ,run/2
   ,i/0
 ]).
 
@@ -78,7 +79,7 @@ behaviour_info(_) ->
 %%
 %% start instance of active anti-entropy
 %%  Options
-%%    {session,  timeout()} - timeout to establish session  
+%%    {session,  timeout()} - timeout to establish session, infinity implies a manual trigger
 %%    {timeout,  timeout()} - peer i/o timeout
 %%    {capacity, integer()} - max number of simultaneous sessions
 %%    {strategy,       aae} - reconciliation strategy
@@ -88,6 +89,11 @@ start_link(Opts) ->
 
 start_link(Name, Opts) ->
    aae_leader:start_link(Name, Opts).
+
+%%
+%% force anti-entropy session
+run(Pid, Peer) ->
+   pipe:call(Pid, {run, Peer}).
 
 %%
 %% list all active session

@@ -106,6 +106,17 @@ idle(timeout, _Pipe, #{node := _Node, adapter := {Mod, Adapter0}}=State) ->
          {next_state, idle, set_timeout(State)}
    end;
 
+idle({run, Peer}, Pipe, #{node := _Node}=State) ->
+   case is_allowed(State) of
+      true  ->
+         pipe:ack(Pipe, ok),
+         {next_state, busy, connect(Peer, State)};            
+
+      false ->
+         pipe:ack(Pipe, {error, ebusy}),
+         {next_state, idle, State}
+   end;
+
 idle({session, _} = Req, Pipe, #{node := _Node, t := T} = State) ->
    case is_allowed(State) of
       true  ->
@@ -119,6 +130,10 @@ idle({session, _} = Req, Pipe, #{node := _Node, t := T} = State) ->
 
 %%
 %%
+busy({run, _Peer}, Pipe, State) ->
+   pipe:ack(Pipe, {error, ebusy}),
+   {next_state, busy, State};
+   
 busy({session, _}, Pipe, State) ->
    pipe:a(Pipe, {session, nok}),
    {next_state, busy, State};
