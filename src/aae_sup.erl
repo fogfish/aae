@@ -43,7 +43,6 @@ init([]) ->
          {one_for_one, 4, 1800},
          [
             ?CHILD(supervisor, aae_session_sup)
-           ,?CHILD(supervisor, aae_gossip_sup)
          ]
       }
    }.

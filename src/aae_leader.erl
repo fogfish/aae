@@ -139,21 +139,12 @@ set_timeout(#{t := T}=State) ->
    State#{t => tempus:timer(T, timeout)}.
 
 %%
-%% spawn new aae | gossip session
+%% spawn new session
 connect(Peer, #{strategy := aae, node := Node, adapter := {Mod, Adapter0}, opts := Opts}=State) ->
    ?NOTICE("aae : connect ~p => ~p", [Node, Peer]),
    Adapter1  = Mod:session(Peer, Adapter0),
    Opts1     = [{adapter, {Mod, Adapter1}} | Opts],
    {ok, Pid} = supervisor:start_child(aae_session_sup, [Opts1]),
-   erlang:monitor(process, Pid),
-   pipe:send(Pid, {session, Node, Peer}),
-   State#{adapter => {Mod, Adapter1}};
-
-connect(Peer, #{strategy := gossip, node := Node, adapter := {Mod, Adapter0}, opts := Opts}=State) ->
-   ?NOTICE("aae : gossip ~p => ~p", [Node, Peer]),
-   Adapter1  = Mod:session(Peer, Adapter0),
-   Opts1     = [{adapter, {Mod, Adapter1}} | Opts],
-   {ok, Pid} = supervisor:start_child(aae_gossip_sup, [Opts1]),
    erlang:monitor(process, Pid),
    pipe:send(Pid, {session, Node, Peer}),
    State#{adapter => {Mod, Adapter1}}.
@@ -171,7 +162,7 @@ accept({session, Peer} = Req, Pipe, #{node := Node, adapter := {Mod, Adapter0}, 
 
 %%
 %% check capacity
-is_allowed(#{capacity := C, strategy := Strategy}) ->
-   length(aae:i(Strategy)) < C.
+is_allowed(#{capacity := C}) ->
+   length(aae:i()) < C.
 
 
