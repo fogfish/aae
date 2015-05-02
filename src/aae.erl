@@ -24,7 +24,7 @@
    start_link/1
   ,start_link/2
   ,run/2
-  ,i/0
+  ,i/1
 ]).
 
 %%
@@ -81,9 +81,11 @@ behaviour_info(_) ->
 %%  Options
 %%    {session,  timeout()} - timeout to establish session, infinity implies a manual trigger
 %%    {timeout,  timeout()} - peer i/o timeout
-%%    {capacity, integer()} - max number of simultaneous sessions
 %%    {strategy,       aae} - reconciliation strategy
 %%    {adapter, {atom(), any()}} - aae behavior
+-spec(start_link/1 :: (list()) -> {ok, pid()} | {error, any()}).
+-spec(start_link/2 :: (atom(), list()) -> {ok, pid()} | {error, any()}).
+
 start_link(Opts) ->
    aae_leader:start_link(Opts).
 
@@ -91,12 +93,16 @@ start_link(Name, Opts) ->
    aae_leader:start_link(Name, Opts).
 
 %%
-%% force anti-entropy session
-run(Pid, Peer) ->
-   pipe:call(Pid, {run, Peer}).
+%% run anti-entropy session
+-spec(run/2 :: (pid(), any()) -> ok).
+
+run(Lead, Peer) ->
+   aae_queue:enq(Lead, Peer).
 
 %%
 %% list all active session
-i() ->
-   [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_session_sup)].
+i(active) ->
+   [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_session_sup)];
+i(stanby) ->
+   pipe:ioctl(aae_queue, length).
 

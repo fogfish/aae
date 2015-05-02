@@ -29,6 +29,8 @@
   ,ioctl/2
   ,idle/3
   ,busy/3
+   % api
+  ,session/2
 ]).
 
 -define(rnd(X), lists:nth(random:uniform(length(X)), X)).
@@ -54,9 +56,6 @@ init([Opts]) ->
    random:seed(os:timestamp()),
    {ok, idle, lists:foldl(fun init/2, #{strategy => aae, opts => Opts}, Opts)}.
 
-init({capacity, X}, State) ->
-   State#{capacity => X};
-
 init({session, X}, State) ->
    State#{t => tempus:timer(X, timeout)};
 
@@ -81,6 +80,16 @@ free(_, _) ->
 ioctl(_, _) ->
    throw(not_implemented).
 
+%%%----------------------------------------------------------------------------   
+%%%
+%%% api
+%%%
+%%%----------------------------------------------------------------------------   
+
+%%
+%% run new session
+session(Pid, Peer) ->
+   pipe:call(Pid, {run, Peer}).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -99,7 +108,8 @@ idle(timeout, _Pipe, #{node := _Node, adapter := {Mod, Adapter0}}=State) ->
          {next_state, idle, set_timeout(State#{adapter => {Mod, Adapter1}})};
 
       {true, {Peers, Adapter1}} ->
-         {next_state, busy, connect(?rnd(Peers), State#{adapter => {Mod, Adapter1}})};
+         aae:run(self(), ?rnd(Peers)),
+         {next_state, idle, set_timeout(State#{adapter => {Mod, Adapter1}})};
 
       {false, _} ->
          ?DEBUG("aae lead : ~p no capacity", [_Node]),
@@ -177,7 +187,7 @@ accept({session, Peer} = Req, Pipe, #{node := Node, adapter := {Mod, Adapter0}, 
 
 %%
 %% check capacity
-is_allowed(#{capacity := C}) ->
-   length(aae:i()) < C.
+is_allowed(_) ->
+   length(aae:i(active)) < opts:val(capacity, ?CONFIG_CAPACITY, aae).
 
 

@@ -1,8 +1,16 @@
 
 %%
+%% default timeout to active anti-entropy session
+-define(CONFIG_SESSION,  60000).
+
+%%
+%% default aae capacity
+-define(CONFIG_CAPACITY,     5).
+
+%%
 %% number of items to read w/o interruption
 %% it defines amount of waisted i/o if peer dies
--define(CONFIG_IO_CHUNK,   10000).
+-define(CONFIG_IO_CHUNK,     10000).
 
 
 %%%----------------------------------------------------------------------------   
