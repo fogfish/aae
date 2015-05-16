@@ -65,7 +65,8 @@ init({adapter, X}, State) ->
 init(_, State) ->
    State.
 
-free(_, _) ->
+free(Reason, #{adapter := {Mod, Adapter}}) ->
+   Mod:free(Reason, Adapter),
    ok.
 
 ioctl(_, _) ->
@@ -82,21 +83,23 @@ ioctl(_, _) ->
 %%% IDLE
 %%%
 
-%%
-idle({session, Node, Peer}, _Pipe, State) ->
+idle({session, Node, Peer}, _Pipe, #{adapter := {Mod, Adapter0}}=State) ->
+   Adapter1  = Mod:session(Peer, Adapter0),
    {next_state, handshake, 
-      set_timeout(req_handshake(Node, Peer, State))
+      set_timeout(req_handshake(Node, Peer, State#{adapter => {Mod, Adapter1}}))
    };
 
 %%
-idle({session, Peer}, Pipe, State) ->
+idle({session, Peer}, Pipe, #{adapter := {Mod, Adapter0}}=State) ->
+   Adapter1  = Mod:session(Peer, Adapter0),
    erlang:monitor(process, pipe:a(Pipe)),
    pipe:a(Pipe, {session, ack}),
    ?INFO("aae : -handshake ~p (~s)", [Peer, erlang:node(pipe:a(Pipe))]),
    snapshot(prepare, Pipe, 
       State#{
-         is   => follower 
-        ,peer => Peer
+         is      => follower 
+        ,peer    => Peer
+        ,adapter => {Mod, Adapter1}
       }
    ).
 

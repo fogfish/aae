@@ -23,6 +23,7 @@
 
 -export([
    new/1
+  ,free/2
   ,peers/1
   ,session/2
   ,handshake/3
@@ -46,6 +47,14 @@ new(_) ->
    random:seed(erlang:now()),
    pg2:join(?MODULE, self()),
    {self(), #{}}.
+
+%%
+%% terminate anti-entropy state either session or leader
+-spec(free/2 :: (any(), state()) -> state()).
+
+free(_, _) ->
+   ok.
+
 
 %%
 %% return list of candidate peers 

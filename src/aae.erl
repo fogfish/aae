@@ -44,6 +44,12 @@ behaviour_info(callbacks) ->
       {new, 1}
 
       %%
+      %% terminate anti-entropy state either session or leader
+      %%
+      %% -spec(free/2 :: (any(), state()) -> state()).
+     ,{free, 2}
+
+      %%
       %% return list of candidate peers 
       %%
       %% -spec(peers/1 :: (state()) -> {[peer()], state()}).
@@ -54,6 +60,7 @@ behaviour_info(callbacks) ->
       %%
       %% -spec(session/1 :: (peer(), state()) -> state()).
      ,{session, 2}
+
 
       %%
       %% connect session to selected remote peer using pipe protocol
@@ -103,6 +110,6 @@ run(Lead, Peer) ->
 %% list all active session
 i(active) ->
    [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_session_sup)];
-i(stanby) ->
+i(standby) ->
    pipe:ioctl(aae_queue, length).
 
