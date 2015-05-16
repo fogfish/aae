@@ -166,18 +166,24 @@ set_timeout(#{t := T}=State) ->
 
 %%
 %% spawn new session
-connect(Peer, #{strategy := aae, node := Node, opts := Opts}=State) ->
+connect(Peer, #{strategy := aae, node := Node, adapter := {Mod, Adapter0}, opts := Opts}=State) ->
    ?NOTICE("aae : connect ~p => ~p", [Node, Peer]),
-   {ok, Pid} = supervisor:start_child(aae_session_sup, [Opts]),
+   % @todo: do we need a session init at leader ?
+   % Adapter1  = Mod:session(Peer, Adapter0),
+   Opts1     = [{adapter, {Mod, Adapter0}} | Opts],
+   {ok, Pid} = supervisor:start_child(aae_session_sup, [Opts1]),
    erlang:monitor(process, Pid),
    pipe:send(Pid, {session, Node, Peer}),
    State.
 
 %%
 %% accept session request
-accept({session, Peer} = Req, Pipe, #{node := Node, opts := Opts}=State) ->
+accept({session, Peer} = Req, Pipe, #{node := Node, adapter := {Mod, Adapter0}, opts := Opts}=State) ->
    ?NOTICE("aae : accept ~p => ~p", [Node, Peer]),
-   {ok, Pid} = supervisor:start_child(aae_session_sup, [Opts]),
+   % @todo: do we need a session init at leader ?
+   % Adapter1  = Mod:session(Peer, Adapter0),
+   Opts1     = [{adapter, {Mod, Adapter0}} | Opts],
+   {ok, Pid} = supervisor:start_child(aae_session_sup, [Opts1]),
    erlang:monitor(process, Pid),
    pipe:emit(Pipe, Pid, Req),
    State.
