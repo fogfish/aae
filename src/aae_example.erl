@@ -41,16 +41,16 @@
 %%
 %% initialize anti-entropy leader state
 %% return identity of itself and new state data 
--spec(new/1 :: (list()) -> {any(), state()}).
+-spec new(list()) -> {any(), state()}.
 
 new(_) ->
-   random:seed(erlang:now()),
+   random:seed(os:timestamp()),
    pg2:join(?MODULE, self()),
    {self(), #{}}.
 
 %%
 %% terminate anti-entropy state either session or leader
--spec(free/2 :: (any(), state()) -> state()).
+-spec free(any(), state()) -> state().
 
 free(_, _) ->
    ok.
@@ -58,7 +58,7 @@ free(_, _) ->
 
 %%
 %% return list of candidate peers 
--spec(peers/1 :: (state()) -> {[peer()], state()}).
+-spec peers(state()) -> {[peer()], state()}.
 
 peers(State) ->
    {[X || X <- pg2:get_members(?MODULE), X =/= self()], State}.
@@ -67,15 +67,15 @@ peers(State) ->
 %%
 %% initialize new anti-entropy session
 %%
--spec(session/2 :: (peer(), state()) -> state()).
+-spec session(peer(), state()) -> state().
 
 session(_Peer, State) ->
-   random:seed(erlang:now()),
+   random:seed(os:timestamp()),
    State.
 
 %%
 %% connect gossip session to selected remote peer using pipe protocol
--spec(handshake/3 :: (peer(), any(), state()) -> state()).
+-spec handshake(peer(), any(), state()) -> state().
 
 handshake(Peer, Req, State) ->
    pipe:send(Peer, Req),
@@ -83,7 +83,7 @@ handshake(Peer, Req, State) ->
 
 %%
 %% make snapshot, returns key/val stream 
--spec(snapshot/1 :: (any()) -> datum:stream()).
+-spec snapshot(any()) -> datum:stream().
 
 snapshot(State) ->
    Stream = stream:build(
@@ -95,7 +95,7 @@ snapshot(State) ->
 
 %%
 %% remote peer diff, called for each key, order is arbitrary 
--spec(diff/3 :: (peer(), val(), state()) -> ok).
+-spec diff(peer(), val(), state()) -> ok.
 
 diff(_Peer, _Key, _State) ->
    ?DEBUG("==> ~p ~p~n", [self(), _Key]).
@@ -132,3 +132,4 @@ run(Strategy, N) ->
       end,
       lists:seq(1, N)
    ).
+

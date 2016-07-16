@@ -90,8 +90,8 @@ behaviour_info(_) ->
 %%    {timeout,  timeout()} - peer i/o timeout
 %%    {strategy,       aae} - reconciliation strategy
 %%    {adapter, {atom(), any()}} - aae behavior
--spec(start_link/1 :: (list()) -> {ok, pid()} | {error, any()}).
--spec(start_link/2 :: (atom(), list()) -> {ok, pid()} | {error, any()}).
+-spec start_link(list()) -> {ok, pid()} | {error, any()}.
+-spec start_link(atom(), list()) -> {ok, pid()} | {error, any()}.
 
 start_link(Opts) ->
    aae_leader:start_link(Opts).
@@ -101,7 +101,7 @@ start_link(Name, Opts) ->
 
 %%
 %% run anti-entropy session
--spec(run/2 :: (pid(), any()) -> ok).
+-spec run(pid(), any()) -> ok.
 
 run(Lead, Peer) ->
    aae_queue:enq(Lead, Peer).
