@@ -53,7 +53,6 @@ start_link(Name, Opts) ->
 %%
 init([Opts]) ->
    lager:md([{lib, aae}]),
-   rand:seed(os:timestamp()),
    {ok, idle, lists:foldl(fun init/2, #{strategy => aae, opts => Opts}, Opts)}.
 
 init({session, X}, State) ->

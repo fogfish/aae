@@ -55,7 +55,6 @@ start_link(Opts) ->
 
 init([Opts]) ->
    lager:md([{lib, aae}]),
-   random:seed(os:timestamp()),
    {ok, idle, lists:foldl(fun init/2, #{}, Opts)}.
 
 init({timeout, X}, State) ->

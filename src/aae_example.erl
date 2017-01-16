@@ -44,7 +44,6 @@
 -spec new(list()) -> {any(), state()}.
 
 new(_) ->
-   random:seed(os:timestamp()),
    pg2:join(?MODULE, self()),
    {self(), #{}}.
 
@@ -70,7 +69,6 @@ peers(State) ->
 -spec session(peer(), state()) -> state().
 
 session(_Peer, State) ->
-   random:seed(os:timestamp()),
    State.
 
 %%
@@ -88,7 +86,7 @@ handshake(Peer, Req, State) ->
 snapshot(State) ->
    Stream = stream:build(
       lists:usort(
-         [random:uniform(X) || X <- lists:seq(1, 100)]
+         [rand:uniform(X) || X <- lists:seq(1, 100)]
       )
    ),
    {Stream, State}.
