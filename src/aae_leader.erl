@@ -33,7 +33,7 @@
   ,session/2
 ]).
 
--define(rnd(X), lists:nth(random:uniform(length(X)), X)).
+-define(rnd(X), lists:nth(rand:uniform(length(X)), X)).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -53,7 +53,7 @@ start_link(Name, Opts) ->
 %%
 init([Opts]) ->
    lager:md([{lib, aae}]),
-   random:seed(os:timestamp()),
+   rand:seed(os:timestamp()),
    {ok, idle, lists:foldl(fun init/2, #{strategy => aae, opts => Opts}, Opts)}.
 
 init({session, X}, State) ->
@@ -117,11 +117,11 @@ idle(timeout, _Pipe, #{node := _Node, adapter := {Mod, Adapter0}}=State) ->
          {next_state, idle, set_timeout(State)}
    end;
 
-idle({run, Peer}, Pipe, #{node := _Node}=State) ->
+idle({run, Peer}, Pipe, #{node := _Node, t := T}=State) ->
    case is_allowed(State) of
       true  ->
          pipe:ack(Pipe, ok),
-         {next_state, busy, connect(Peer, State)};            
+         {next_state, busy, connect(Peer, State#{t => tempus:cancel(T)})};            
 
       false ->
          pipe:ack(Pipe, {error, ebusy}),
