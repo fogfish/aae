@@ -155,14 +155,18 @@ snapshot(build, Pipe, #{ht := HT0, stream := Stream0}=State) ->
 
       %% hash tree is not build 
       {HT1, Stream1} ->
-         %% @todo: throttle build procedure
-         pipe:emit(Pipe, self(), build),
-         {next_state, snapshot,
-            State#{
-               ht     => HT1,
-               stream => Stream1
-            }
-         }
+         snapshot(build, Pipe, State#{ht => HT1, stream => Stream1})
+         %% 
+         %% @todo: disable async builder due to sync issue with leader
+         %%
+         %% %% @todo: throttle build procedure
+         %% pipe:emit(Pipe, self(), build),
+         %% {next_state, snapshot,
+         %%   State#{
+         %%      ht     => HT1,
+         %%      stream => Stream1
+         %%   }
+         %%}
    end;
 
 %% abort gossip session due to peer failure
@@ -180,6 +184,8 @@ exchange(init, _Pipe, #{is := follower}=State) ->
    {next_state, exchange, State#{lsync => 0}};
 
 exchange(init, Pipe, #{is := leader, ht := HT}=State) ->
+   %% @todo: leader process shall wait for follower.
+   %%        it must start reconciliation only when follower built its hash tree
    case htree:hash(0, HT) of
       undefined ->
          HashB = htree:hash(HT),
