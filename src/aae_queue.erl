@@ -70,7 +70,7 @@ ioctl(_, _) ->
 %%
 %%
 enq(Lead, Peer) ->
-   pipe:call(?MODULE, {run, Lead, Peer}).
+   pipe:call(?MODULE, {run, Lead, Peer}, infinity).
 
 %%%----------------------------------------------------------------------------   
 %%%

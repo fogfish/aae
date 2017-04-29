@@ -89,7 +89,7 @@ ioctl(_, _) ->
 %%
 %% run new session
 session(Pid, Peer) ->
-   pipe:call(Pid, {run, Peer}).
+   pipe:call(Pid, {run, Peer}, infinity).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -116,21 +116,21 @@ idle(timeout, _Pipe, #{node := _Node, adapter := {Mod, Adapter0}}=State) ->
          {next_state, idle, set_timeout(State)}
    end;
 
-idle({run, Peer}, Pipe, #{node := _Node, t := T}=State) ->
+idle({run, Peer}, Pipe, #{node := _Node}=State) ->
    case is_allowed(State) of
       true  ->
          pipe:ack(Pipe, ok),
-         {next_state, busy, connect(Peer, State#{t => tempus:cancel(T)})};            
+         {next_state, busy, connect(Peer, rst_timeout(State))};            
 
       false ->
          pipe:ack(Pipe, {error, ebusy}),
          {next_state, idle, State}
    end;
 
-idle({session, _} = Req, Pipe, #{node := _Node, t := T} = State) ->
+idle({session, _} = Req, Pipe, #{node := _Node} = State) ->
    case is_allowed(State) of
       true  ->
-         {next_state, busy, accept(Req, Pipe, State#{t => tempus:cancel(T)})};
+         {next_state, busy, accept(Req, Pipe, rst_timeout(State))};
 
       false ->
          ?DEBUG("aae lead : ~p no capacity", [_Node]),
@@ -164,6 +164,16 @@ set_timeout(#{t := T}=State) ->
    State#{t => tempus:timer(T, timeout)}.
 
 %%
+%%
+rst_timeout(#{t := T}=State) ->
+   T0 = tempus:cancel(T),
+   receive 
+      timeout -> ok 
+   after 0 -> ok 
+   end,
+   State#{t => T0}.
+
+%%
 %% spawn new session
 connect(Peer, #{strategy := aae, node := Node, adapter := {Mod, Adapter0}, opts := Opts}=State) ->
    ?NOTICE("aae : connect ~p => ~p", [Node, Peer]),
@@ -171,6 +181,7 @@ connect(Peer, #{strategy := aae, node := Node, adapter := {Mod, Adapter0}, opts 
    % Adapter1  = Mod:session(Peer, Adapter0),
    Opts1     = [{adapter, {Mod, Adapter0}} | Opts],
    {ok, Pid} = supervisor:start_child(aae_session_sup, [Opts1]),
+   io:format("=[ c ]=> ~p~n", [aae:i(active)]),
    erlang:monitor(process, Pid),
    pipe:send(Pid, {session, Node, Peer}),
    State.
@@ -183,6 +194,7 @@ accept({session, Peer} = Req, Pipe, #{node := Node, adapter := {Mod, Adapter0}, 
    % Adapter1  = Mod:session(Peer, Adapter0),
    Opts1     = [{adapter, {Mod, Adapter0}} | Opts],
    {ok, Pid} = supervisor:start_child(aae_session_sup, [Opts1]),
+   io:format("=[ a ]=> ~p~n", [aae:i(active)]),
    erlang:monitor(process, Pid),
    pipe:emit(Pipe, Pid, Req),
    State.

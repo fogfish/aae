@@ -86,7 +86,7 @@ handshake(Peer, Req, State) ->
 snapshot(State) ->
    Stream = stream:build(
       lists:usort(
-         [rand:uniform(X) || X <- lists:seq(1, 100)]
+         [rand:uniform(X) || X <- lists:seq(1, 100000)]
       )
    ),
    {Stream, State}.
