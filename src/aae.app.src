@@ -1,13 +1,15 @@
 {application, aae,
    [
       {description, "active anti-entropy protocol"},
-      {vsn,         "0.8.4"},
+      {vsn,         "1.0.0"},
       {modules,     []},
       {registered,  []},
       {applications,[
          kernel
         ,stdlib
         ,lager
+        ,pns
+        ,cache
       ]},
       {mod, {aae_app, []}},
       {env, []}

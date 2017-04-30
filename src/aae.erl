@@ -17,15 +17,29 @@
 %% @description
 %%   active anti-entropy
 -module(aae).
+-compile({parse_transform, category}).
 
 -export([start/0]).
 -export([behaviour_info/1]).
 -export([
+   topic/2,
+   gossip/3,
+   gossip/4,
+
+
    start_link/1
   ,start_link/2
   ,run/2
   ,i/1
 ]).
+
+%%
+%%
+-type topic() :: binary().
+-type opts()  :: [{atom(), _}].
+-type key()   :: _.
+-type rumor() :: _. 
+
 
 %%
 %% RnD application start
@@ -83,6 +97,29 @@ behaviour_info(callbacks) ->
 behaviour_info(_) ->
    undefined.
  
+%%
+%% join peer to gossip *topic*
+-spec topic(topic(), opts()) -> {ok, pid()} | {error, _}.
+
+topic(Topic, Opts) ->
+   supervisor:start_child(aae_gossip_sup, [scalar:s(Topic), Opts]).
+
+%%
+%%
+-spec gossip(topic(), key(), rumor()) -> ok | {error, _}.
+-spec gossip(topic(), key(), rumor(), timeout()) -> ok | {error, _}.
+
+gossip(Topic, Key, Rumor) ->
+   gossip(Topic, Key, Rumor, 5000).
+
+gossip(Topic, Key, Rumor, Timeout) ->
+   [$. ||
+      scalar:s(Topic),
+      pns:whereis(aae, _),
+      pipe:call(_, {gossip, Key, Rumor}, Timeout)
+   ].
+
+
 %%
 %% start instance of active anti-entropy
 %%  Options

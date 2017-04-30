@@ -16,7 +16,7 @@
 %%
 %% @description
 %%   active anti-entropy
--module(aae_sup).
+-module(aae_gossip_sup).
 -behaviour(supervisor).
 
 -export([
@@ -40,12 +40,9 @@ start_link() ->
 init([]) ->   
    {ok,
       {
-         {one_for_one, 4, 1800},
+         {simple_one_for_one, 4, 1800},
          [
-            ?CHILD(worker,     aae_peer)
-           ,?CHILD(supervisor, aae_gossip_sup)
-           %  ?CHILD(worker,     aae_queue)
-           % ,?CHILD(supervisor, aae_session_sup)
+            ?CHILD(supervisor, aae_topic_sup)
          ]
       }
    }.
