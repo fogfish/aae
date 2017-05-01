@@ -1,5 +1,23 @@
 
 %%
+%%
+-record(pushpull, {
+   peer   = undefined :: node(),
+   topic  = undefined :: binary(),
+   digest = undefined :: [{_, _}]
+}).
+
+%%
+%%
+-record(feedback, {
+   peer   = undefined :: node(),
+   topic  = undefined :: binary(),
+   digest = undefined :: [{_, _}]
+}).
+
+
+
+%%
 %% default timeout to active anti-entropy session
 -define(CONFIG_SESSION,  60000).
 

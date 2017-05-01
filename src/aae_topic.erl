@@ -4,6 +4,7 @@
 -behaviour(pipe).
 
 -compile({parse_transform, monad}).
+-include("aae.hrl").
 
 -export([
    start_link/2
@@ -17,7 +18,8 @@
 -record(state, {
    topic    = undefined :: _,
    cache    = undefined :: pid(),
-   strategy = undefined :: {atom(), _}
+   strategy = undefined :: {atom(), _},
+   n        = undefined :: integer()
 }).
 
 %%%----------------------------------------------------------------------------   
@@ -36,7 +38,8 @@ init([Uid, Opts]) ->
    {ok, handle, 
       #state{
          topic    = Uid,
-         strategy = opts:val(strategy, Opts)
+         strategy = opts:val(strategy, Opts),
+         n        = opts:val(n, Opts)
       }
    }.
 
@@ -53,28 +56,35 @@ ioctl({cache, Pid}, State) ->
 %%%----------------------------------------------------------------------------
 
 handle({gossip, Key, Rumor}, Pipe, #state{cache = Cache} = State) ->
-   ok = cache:put(Cache, Key, Rumor),
+   ok = cache:put(Cache, Key, {hot, Rumor}),
    pipe:ack(Pipe, ok),
    {next_state, handle, State};
 
 handle(epidemic, _, State) ->
    infect(State),
    %% @todo: configurable
-   erlang:send_after(5000, self(), epidemic),
+   erlang:send_after(1000, self(), epidemic),
    {next_state, handle, State};
 
-handle({infect, Snapshot}, _Pipe, #state{strategy = {Strategy, SState}} = State) ->
-   lists:foreach(
-      fun({Key, Rumor}) ->
-         lists:map(
-            fun(Pid) ->
-               pipe:send(Pid, {gossip, Key, Rumor})
-            end,
-            Strategy:processes(Key, SState)
-         )
-      end,
-      Snapshot
-   ),
+handle(#pushpull{peer = Peer, digest = Digest}, _Pipe, #state{topic = Topic, strategy = {Strategy, SState}} = State) ->
+   {Susceptible, Infective, Removed} = splitwith(Digest, State),
+   io:format("[aae] : pushpull ~p / ~p S: ~p I: ~p R: ~p~n", [Peer, length(Digest), length(Susceptible), length(Infective), length(Removed)]),
+
+   forget(Removed, State),
+   infect_local_processes(Susceptible, State),
+
+   %% feedback 
+   Feedback = [{Key, A} || {Key, A, _} <- Infective ++ Removed],
+   pipe:send({aae_peer, Peer}, #feedback{peer = node(), topic = Topic, digest = Feedback}),
+
+   {next_state, handle, State};
+
+handle(#feedback{peer = Peer, digest = Digest}, _Pipe, #state{cache = Cache} = State) ->
+   {Susceptible, _Infective, Removed} = splitwith(Digest, State),
+   io:format("[aae] : feedback ~p / ~p S: ~p I: ~p R: ~p~n", [Peer, length(Digest), length(Susceptible), length(_Infective), length(Removed)]),
+
+   forget(Removed, State),
+   infect_local_processes(Susceptible, State),
    {next_state, handle, State};
 
 handle(_, _, State) ->
@@ -107,22 +117,33 @@ find_susceptible_peer(#state{strategy = {Strategy, State}}) ->
 %%
 %%
 build_snapshot(Peer, #state{cache = Cache, strategy = {Strategy, State}}) ->
-   stream:fold(
-      fun(Rumor, Acc) -> [Rumor | Acc] end, [],
-      stream:filter(
-         fun({Key, _}) -> lists:member(Peer, Strategy:peers(Key, State)) end,
-         hot_rumor(Cache)
-      )
-   ).
+   %% @todo: stream random
+   %% @todo: stream limit to MTU
+   % stream:fold(
+      % fun({Key, {_, A}}, Acc) -> [{Key, A} | Acc] end, [],
+      % stream:take(128,
+         uniform(
+            stream:filter(
+               fun({Key, _}) -> lists:member(Peer, Strategy:peers(Key, State)) end,
+               hot_rumor(Cache)
+            )
+         ).
+      % )
+   % ). 
 
 infect_peer(Peer, Snapshot, #state{topic = Topic}) ->
-   %% @todo: safe crash here to preserve topic instance 
-   pipe:call({aae_peer, Peer}, {infect, Topic, Snapshot}, infinity).
+   %% @todo: safe crash here to preserve topic instance
+   % io:format("======>~n~p~n", [Snapshot]), 
+   pipe:call({aae_peer, Peer}, #pushpull{peer = node(), topic = Topic, digest = Snapshot}, infinity).
+
 
 %%
 %%
 hot_rumor(Cache) ->
-   stream( source(Cache) ). 
+   stream:filter(
+      fun({_, {Val, _}}) -> Val =:= hot end,
+      stream( source(Cache) )
+   ).
 
 source(Cache) ->
    %% @todo: probability based approach to spread rumor
@@ -146,6 +167,105 @@ stream(FD, Key0) ->
          [{Key, _} = Head] = ets:lookup(FD, Key1),
          stream:new(Head, fun() -> stream(FD, Key) end)
    end.
+
+%%
+%%
+uniform(Stream) ->
+   uniform(1, 1024, Stream).
+
+% uniform(_, {}) ->
+   % stream:new();   
+uniform(N, K, Stream) ->
+   q:list(
+      erlang:element(2, stream:fold(
+         fun({Key, {_, A}}, {N0, Queue}) ->
+            case rand:uniform(N0) of
+               X when X =< K ->
+                  Q = q:enq({Key, A}, Queue),
+                  case q:length(Q) > K of
+                     true  ->
+                        {_, Q1} = q:deq(Q),
+                        {N0 + 1, Q1};
+                     false ->
+                        {N0 + 1, Q}
+                  end;
+               _ ->
+                  {N0 + 1, Queue}
+            end
+         end,
+         {N, q:new()},
+         Stream
+      ))
+   ).
+
+
+
+   % X 
+
+   % case rand:uniform(N) of 
+   %    1 -> 
+   %       stream:new(stream:head(Stream), 
+   %          fun() -> uniform(N + 1, stream:tail(Stream)) end);
+   %    _ ->
+   %       uniform(N + 1, stream:tail(Stream))
+   % end.
+
+%%
+%% split digest on susceptible and removed rumor
+splitwith(Gossip, #state{cache = Cache, strategy = {Strategy, _}}) ->
+   Digest = lists:map(
+      fun({Key, B}) ->
+         case cache:lookup(Cache, Key) of
+            undefined ->
+               {Key, undefined, B};
+            {_, A} ->
+               {Key, A, B}
+         end
+      end,
+      Gossip
+   ),
+   {Removed, List} = lists:partition(
+      fun({_, A, B}) -> Strategy:equal(A, B) end, 
+      Digest
+   ),
+   {Susceptible, Infective} = lists:partition(
+      fun({_, A, B}) -> Strategy:descend(A, B) end,
+      List
+   ),
+   {Susceptible, Infective, Removed}.
+
+%%
+%% forget rumor with 1/n probability 
+forget(Digest, #state{cache = Cache, n = N}) ->
+   lists:filter(
+      fun({Key, A, _}) ->
+         case rand:uniform(N) of
+            1 ->
+               % cache:put(Cache, Key, {dead, A}),
+               true;
+            _ ->
+               false
+         end
+      end,
+      Digest
+   ).
+
+
+%%
+%%
+infect_local_processes(Digest, #state{strategy = {Strategy, State}}) ->
+   lists:foreach(
+      fun({Key, _, B}) ->
+         lists:map(
+            fun(Pid) ->
+               %% Note: async notification
+               pipe:send(Pid, {gossip, Key, B})
+            end,
+            Strategy:processes(Key, State)
+         )
+      end,
+      Digest
+   ).
 
 %%
 %%

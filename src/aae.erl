@@ -35,10 +35,10 @@
 
 %%
 %%
--type topic() :: binary().
--type opts()  :: [{atom(), _}].
--type key()   :: _.
--type rumor() :: _. 
+-type topic()  :: binary().
+-type opts()   :: [{atom(), _}].
+-type key()    :: _.
+-type digest() :: _. 
 
 
 %%
@@ -106,8 +106,8 @@ topic(Topic, Opts) ->
 
 %%
 %%
--spec gossip(topic(), key(), rumor()) -> ok | {error, _}.
--spec gossip(topic(), key(), rumor(), timeout()) -> ok | {error, _}.
+-spec gossip(topic(), key(), digest()) -> ok | {error, _}.
+-spec gossip(topic(), key(), digest(), timeout()) -> ok | {error, _}.
 
 gossip(Topic, Key, Rumor) ->
    gossip(Topic, Key, Rumor, 5000).
