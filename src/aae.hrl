@@ -16,6 +16,16 @@
 }).
 
 
+%%
+%% default gossip cycle
+-define(CONFIG_CYCLE,     1000).
+
+%%
+%% default gossip packet
+-define(CONFIG_PACKET,    1024).
+
+
+
 
 %%
 %% default timeout to active anti-entropy session

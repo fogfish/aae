@@ -48,17 +48,6 @@ handle(#feedback{topic = Topic} = Msg, Pipe, State) ->
    route_to(Topic, Pipe, Msg),
    {next_state, handle, State};
 
-% handle({infect, Topic, Snapshot}, Pipe, State) ->
-%    case pns:whereis(aae, Topic) of
-%       undefined ->
-%          pipe:ack(Pipe, {error, noroute});
-%       Pid ->
-%          %% @todo: think about flow control
-%          pipe:send(Pid, {infect, Snapshot}),
-%          pipe:ack(Pipe, ok)
-%    end,
-%    {next_state, handle, State};
-
 handle(_, _, State) ->
    {next_state, handle, State}.
 

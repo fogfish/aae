@@ -22,15 +22,15 @@
 -export([start/0]).
 -export([behaviour_info/1]).
 -export([
-   topic/2,
-   gossip/3,
-   gossip/4,
+   topic/2
+  ,gossip/3
+  ,gossip/4
+  ,i/1
 
 
-   start_link/1
+  ,start_link/1
   ,start_link/2
   ,run/2
-  ,i/1
 ]).
 
 %%
@@ -99,13 +99,17 @@ behaviour_info(_) ->
  
 %%
 %% join peer to gossip *topic*
+%%  Options:
+%%   * {strategy, ...} -
+%%   * {cycle,  integer()} - cycle gossip sessions
+%%   * {packet, integer()} - size of gossip packet
 -spec topic(topic(), opts()) -> {ok, pid()} | {error, _}.
 
 topic(Topic, Opts) ->
    supervisor:start_child(aae_gossip_sup, [scalar:s(Topic), Opts]).
 
 %%
-%%
+%% 
 -spec gossip(topic(), key(), digest()) -> ok | {error, _}.
 -spec gossip(topic(), key(), digest(), timeout()) -> ok | {error, _}.
 
@@ -117,6 +121,17 @@ gossip(Topic, Key, Rumor, Timeout) ->
       scalar:s(Topic),
       pns:whereis(aae, _),
       pipe:call(_, {gossip, Key, Rumor}, Timeout)
+   ].
+
+%%
+%%
+-spec i(topic()) -> [_].
+
+i(Topic) ->
+   [$. ||
+      scalar:s(Topic),
+      pns:whereis(aae, _),
+      pipe:ioctl(_, i)
    ].
 
 
@@ -145,8 +160,8 @@ run(Lead, Peer) ->
 
 %%
 %% list all active session
-i(active) ->
-   [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_session_sup)];
-i(standby) ->
-   pipe:ioctl(aae_queue, length).
+% i(active) ->
+%    [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_session_sup)];
+% i(standby) ->
+%    pipe:ioctl(aae_queue, length).
 
