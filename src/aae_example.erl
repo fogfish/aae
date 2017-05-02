@@ -17,7 +17,7 @@
 %% @description
 %%   anti-entropy protocol example 
 -module(aae_example).
--behaviour(aae).
+% -behaviour(aae).
 
 -include("aae.hrl").
 

@@ -26,11 +26,6 @@
   ,gossip/3
   ,gossip/4
   ,i/1
-
-
-  ,start_link/1
-  ,start_link/2
-  ,run/2
 ]).
 
 %%
@@ -51,48 +46,33 @@ start() ->
 behaviour_info(callbacks) ->
    [
       %%
-      %% initialize anti-entropy leader state
-      %% return identity of itself and new state data 
+      %% return list of susceptible cluster nodes
       %%
-      %% -spec(new/1 :: (list()) -> {any(), state()}).
-      {new, 1}
+      %% -spec nodes(_) -> [node()].
+      {nodes, 1}
 
       %%
-      %% terminate anti-entropy state either session or leader
+      %% return list of susceptible peers for given key
       %%
-      %% -spec(free/2 :: (any(), state()) -> state()).
-     ,{free, 2}
+      %% -spec peers(key(), _) -> [node()].
+     ,{peers, 2}
 
       %%
-      %% return list of candidate peers 
+      %% return list of local susceptible processes for given key
       %%
-      %% -spec(peers/1 :: (state()) -> {[peer()], state()}).
-     ,{peers, 1}
+      %% -spec processes(key(), _) -> [pid()].
+     ,{processes, 2}
 
       %%
-      %% initialize new anti-entropy session
+      %% compare values, return true if A =< B
       %%
-      %% -spec(session/1 :: (peer(), state()) -> state()).
-     ,{session, 2}
-
-
-      %%
-      %% connect session to selected remote peer using pipe protocol
-      %% 
-      %% -spec(handshake/3 :: (peer(), any(), state()) -> state()).
-     ,{handshake, 3}
+      %% -spec descend(digest(), digest()) -> true | false.
+     ,{descend, 2}
 
       %%
-      %% make snapshot, returns key/val stream 
-      %%
-      %% -spec(snapshot/1 :: (state()) -> {datum:stream(), state()}).
-     ,{snapshot,  1}
-
-      %%
-      %% remote peer diff, called for each key, order is arbitrary 
-      %%
-      %% -spec(diff/4 :: (peer(), key(), state()) -> ok).
-     ,{diff, 3}
+      %% compare values, return true if A = B
+      %% -spec equal(digest(), digest()) -> true | false.
+     ,{equal, 2}
    ];
 behaviour_info(_) ->
    undefined.
@@ -133,35 +113,4 @@ i(Topic) ->
       pns:whereis(aae, _),
       pipe:ioctl(_, i)
    ].
-
-
-%%
-%% start instance of active anti-entropy
-%%  Options
-%%    {session,  timeout()} - timeout to establish session, infinity implies a manual trigger
-%%    {timeout,  timeout()} - peer i/o timeout
-%%    {strategy,       aae} - reconciliation strategy
-%%    {adapter, {atom(), any()}} - aae behavior
--spec start_link(list()) -> {ok, pid()} | {error, any()}.
--spec start_link(atom(), list()) -> {ok, pid()} | {error, any()}.
-
-start_link(Opts) ->
-   aae_leader:start_link(Opts).
-
-start_link(Name, Opts) ->
-   aae_leader:start_link(Name, Opts).
-
-%%
-%% run anti-entropy session
--spec run(pid(), any()) -> ok.
-
-run(Lead, Peer) ->
-   aae_queue:enq(Lead, Peer).
-
-%%
-%% list all active session
-% i(active) ->
-%    [Pid || {_, Pid, _, _} <- supervisor:which_children(aae_session_sup)];
-% i(standby) ->
-%    pipe:ioctl(aae_queue, length).
 
